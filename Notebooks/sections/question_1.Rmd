@@ -1,0 +1,138 @@
+# Vietnam Draft Lottery
+
+```{problem_description}
+A famous paper (http://sites.duke.edu/niou/files/2011/06/Angrist_lifetime-earningsmall.pdf) by Angrist exploits the randomized lottery for the Vietnam draft to estimate the effect of education on wages. (*Don’t worry about reading this article, it is just provided to satisfy your curiosity; you can answer the question below without referring to it. In fact, it may be easier for you not to, since he has some complications to deal with that the simple data we’re giving you do not.*)
+
+Problem Setup
+
+Angrist’s idea is this: During the Vietnam era, draft numbers were determined randomly by birth date -- the army would literally randomly draw birthdays out of a hat, and those whose birthdays came up sooner were higher up on the list to be drafted first. For example, all young American men born on May 2 of a given year might have draft number 1 and be the first to be called up for service, followed by November 13 who would get draft number 2 and be second, etc. The higher-ranked (closer to 1) your draft number, the likelier it was you would be drafted.
+
+We have generated a fake version of this data for your use in this project. You can find real information (https://www.sss.gov/About/History-And-Records/lotter1). While we are defining having a high draft number as falling at 80, in reality in 1970 any number lower than 195 would have been a "high" draft number, in 1971 anything lower than 125 would have been "high". 
+
+High draft rank induced many Americans to go to college, because being a college student was an excuse to avoid the draft -- so those with higher-ranked draft numbers attempted to enroll in college for fear of being drafted, whereas those with lower-ranked draft numbers felt less pressure to enroll in college just to avoid the draft (some still attended college regardless, of course). Draft numbers therefore cause a natural experiment in education, as we now have two randomly assigned groups, with one group having higher mean levels of education, those with higher draft numbers, than another, those with lower draft numbers. (In the language of econometricians, we say the draft number is “an instrument for education,” or that draft number is an “instrumental variable.”)
+
+Some simplifying assumptions:
+
+- Suppose that these data are a true random sample of IRS records and that these records measure every living American’s income without error.
+- Suppose that this data is the result of the following SQL query (this information is informative for the differential attrition question): 
+
+
+{SQL} 
+SELECT 
+  ssearning AS earnings 
+    years_of_schooling AS years_education
+    ein AS id
+FROM irs_income_1980 
+JOIN draft_status 
+ON ssearning.id = draft_status.id
+DROP id 
+```
+
+```{problem_description}
+- Assume that the true effect of education on income is linear in the number of years of education obtained.
+- Assume all the data points are from Americans born in a single year and we do not need to worry about cohort effects of any kind.
+```
+
+```{r load draft data}
+d <- fread('../data/draft_data.csv')
+head(d)
+```
+
+## Observational estimate
+
+Suppose that you had not run an experiment. Estimate the "effect" of each year of education on income as an observational researcher might, by just running a regression of years of education on income (in R-ish, `income ~ years_education`). What does this naive regression suggest?
+
+```{r observational model, include=TRUE}
+cl_se <- function(model, cluster) { 
+    # get cluster level robust standard error
+    sqrt(diag(vcovCL(model, cluster=cluster)))
+}
+
+model_observational <- d[, lm(income ~ years_education)]
+model_observational$cluster_se <- cl_se(model_observational, d[ , draft_number])
+stargazer(model_observational,
+          type="text",
+          se=list(model_observational$cluster_se))
+```
+
+**Answer:** This naive regression suggests that years of education have a significant effect on income. For each year of education, income increases by \$`r model_observational$coefficients['years_education']`, with a cluster standard error of `r model_observational$cluster_se['years_education']`. As an observational researcher, this seems like a reasonable conclusion regardless of the time period of the observation. This naive regression has yet to account for the effect of draft ranking during the Vietnam War on income.
+
+## Evaluating observational estimate
+
+Continue to suppose that we did not run the experiment, but that we saw the result that you noted in part 1. Tell a concrete story about why you don't believe that observational result tells you anything causal.
+
+**Answer:** An observational result does not indicate a causal result because there may be many possible, unmeasured variables that contribute to or confound this result, aka omitted variable bias. For example, a possible variable could be parental education level's effect on a person's outcome. A parent with a doctorate is more likely to get their child to go to college than a parent without a high school degree. A similar statement can be made for parental income or prior income having an effect on years of education attained as years of education can be seen as a function of societal privilege.
+
+## Natural experiment effect on education
+
+Now, let's get to using the natural experiment. Define "having a high-ranked draft number" as having a draft number between 1-80. For the remaining 285 days of the year, consider them having a "low-ranked" draft number). Create a variable in your dataset called `high_draft` that indicates whether each person has a high-ranked draft number or not. Using a regression, estimate the effect of having a high-ranked draft number on years of education obtained. Report the estimate and a correctly computed standard error. (\*Hint: How is the assignment to having a draft number conducted? Does random assignment happen at the individual level? Or, at some higher level?)
+
+```{r draft effect on education, include=TRUE}
+d[, high_draft := draft_number <= 80]
+model_education <- d[, lm(years_education ~ high_draft)]
+model_education$cluster_se <- cl_se(model_education, d[ , draft_number])
+stargazer(model_education, 
+          type="text",
+          se=list(model_education$cluster_se))
+```
+
+**Answer:** Having a high-ranked draft number appears to increase years of education by`r model_education$coefficients['high_draftTRUE']` years; this is calculated with a cluster standard error of `r model_education$cluster_se['high_draftTRUE']` years, a narrow band for error. Each draft number corresponds to a group of people born on the same day, so the random assignment occurs at a higher level, so there are potential group effects occurring.
+
+## Natural experiment effect on income
+
+Using linear regression, estimate the effect of having a high-ranked draft number on income. Report the estimate and the correct standard error.
+
+```{r draft effect on income, include=TRUE}
+model_income <- d[, lm(income ~ high_draft)]
+model_income$cluster_se <- cl_se(model_income, d[ , draft_number])
+stargazer(model_income, 
+          type="text",
+          se=list(model_income$cluster_se))
+```
+
+**Answer:** Having a high-ranked draft number appears to increase income by \$`r model_income$coefficients['high_draftTRUE']`; this is calculated with a robust standard error of \$`r model_income$cluster_se['high_draftTRUE']`, a narrow band of error. So, having a high draft number (more likely having to be drafted into war), seems to have an additive effect on income.
+
+## Instrumental variables estimate of education on income
+
+Now, estimate the Instrumental Variables regression to estimate the effect of education on income. To do so, use `AER::ivreg`. After you evaluate your code, write a narrative description about what you learn.
+
+```{r instrumental variables regression, include=TRUE}
+# Formula and instruments: y ~ x1 + x2 |z1 + z2 + z3 (recommended)
+model_iv <- d[, ivreg(income ~ years_education | high_draft)]
+model_iv$cluster_se <- cl_se(model_iv, d[ , draft_number])
+stargazer(model_iv, 
+          type="text",
+          se=list(model_iv$cluster_se))
+```
+
+**Answer:** We use the Instrumental Variable regression to estimate the effect of education on income because we want to disentangle the effects of schooling from the effects of draft numbers; it can help estimate a causal effect. To do the calculation, we first did a regression of the instrumental variable `draft_number` on `years_education` to create a trendline of `draft_number` on `years_education`. Then, we take the predicted `years_education` and fit it to `income`. As a result, we get a coefficient of `r model_iv$coefficients[2]` for the instrument variable regression with a robust standard error of `r model_iv$cluster_se[2]`. This shows that we get a significant effect of `years_education` on `income` with Vietnam `draft_number` as an instrumental variable. We get a regression using cleaned up variation rather than dirty within-group variation from `draft_number`. 
+
+```{problem_description}
+Just like the other experiments that we've covered in the course, natural experiments rely crucially on satisfying the "exclusion restriction". In the case of a medical trial, we've said this means that there can't be an effect of just "being at the doctor's office" when the doctor is giving you a treatment. In the case of an instrumental variable's setup, the *instrument* (being drafted) cannot affect the outcome (income) in any other way except through its effect on the "endogenous variable" (here, education). 
+```
+
+## Evaluating the exclusion restriction
+
+Give one reason this requirement might not be satisfied in this context. In what ways might having a high draft rank affect individuals' income **other** than nudging them to attend more school?
+
+**Answer:**  We may fail the exclusion restriction if the independent variables directly affect the dependent variables in a regression. The randomization process should not affect outcome in any other way except through the treatment. The random assignment from the draft does not only affect our variable of choice (`income`). It affects other aspects of an individual that can further affect `income`. A high draft number often entails that the subject is likely to go to war. A subject in a high draft cluster number can have their future income affected by their being at war. The onset of PTSD from the war may significantly decrease income when they come home because the war affected how they work; discipline inculcated from going to war may create a better worker, increasing income. We may underestimate with subjects experiencing PTSD or overestimate with disciplined subjects.
+
+## Differential attrition
+
+Conduct a test for the presence of differential attrition by treatment condition. That is, conduct a formal test of the hypothesis that the "high-ranked draft number" treatment has no effect on whether we observe a person's income. **(Note, that an earning of \$0 *actually* means they didn't earn any money -- i.e. earning \$0 does not mean that their data wasn't measured. Let's be really, really specific: If you write a model that looks anything like, `lm(income == 0 ~ .)` you've gone the wrong direction.)**
+
+```{r differential attrition, include=TRUE}
+cluster_cts <- d[, .(count = .N), by=draft_number]
+cluster_cts[, high_draft := draft_number <= 80]
+
+model_differential_attrition <- cluster_cts[, t.test(count ~ high_draft)]
+model_differential_attrition
+```
+
+**Answer:** We get a p-value of `r model_differential_attrition$p.value` with a 95% confidence interval of (`r model_differential_attrition$conf.int[1]`, `r model_differential_attrition$conf.int[2]`). It appears that we reject the null hypothesis that the that the "high-ranked draft number" treatment has no effect on whether we observe a person's income.
+
+## Evaluate differential attrition
+
+Tell a concrete story about what could be leading to the result in part 7. How might this differential attrition create bias in the estimates of a causal effect?
+
+**Answer:** The rejection of the null hypothesis in part 7 is likely. We know that an earning of \$0 *actually* means they didn't earn any money, so this dataset only contains people who were drafted and lived long enough to get their income recorded. There may be attriters with low draft numbers because they died in the Vietnam War and we cannot record the income of a dead person. This differential attrition can create bias because we may fail to get an apples-to-apples comparison of income outcomes between high-ranked and low-ranked draft numbers. Failing to survive deployment gives us unmeasured educational/income outcomes because the data has been deleted and we can't make a comparison. So we may have overestimated the causal effect of years of education on income with draft numbers as an instrumental variable.

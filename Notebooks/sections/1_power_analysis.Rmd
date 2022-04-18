@@ -1,0 +1,125 @@
+# Power Analysis Calculation
+
+Functions to generate treatment vector and outcome vector. Outcome drawn from a binomial distribution with probability `prob_click` to represent the probability that a user clicked the ad. 
+
+```{r randomization}
+randomize <- function(units_per_group){
+  assignment_vector <- rep(c(0, 1), each=units_per_group)
+  sample(assignment_vector)
+}
+
+randomize_effect <- function(n, prob_click){
+  # rnorm(n, mean=prob_click, sd=sqrt(prob_click * (1 - prob_click)))
+  effect_vector <- rbinom(n, 1, prob_click)
+  effect_vector
+}
+```
+
+`industry_ctr` is the 2021 average click through rate for Facebook ads in the education industry. Let's start with a hypothetical treatment effect of 0.014. This represents a 200% increase in CTR. `make_data` is a function to generate fake data with `num_subjects` participants and an ATE of `effect_size`.
+
+```{r using industry ctr}
+industry_ctr <- 0.0073
+hyp_effect_size <- 0.014
+
+make_data <- function(num_subjects, effect_size){
+  d <- data.table(id = 1:num_subjects)
+  d[ , treatment := randomize(.N/2)]
+  
+  d[ , clicked_control := randomize_effect(.N, industry_ctr)]
+  d[ , clicked_treatment := randomize_effect(.N, industry_ctr + effect_size)]
+  
+  d[ , clicked := ifelse(treatment == 0, clicked_control, clicked_treatment)]
+}
+```
+
+Generating sample data with 1000 participants. 
+
+```{r generate fake data}
+d <- make_data(1000, hyp_effect_size)
+head(d)
+```
+ATE for this sample. 
+
+```{r ATE of the fake data}
+d[ , mean(clicked), keyby=treatment][, diff(V1)]
+```
+
+Below is a function to run RI and calculate p_values. 
+
+```{r run RI and calculate p-values}
+get_pvalues <- function(n, effect_size, num_replications){
+  p_values <- NA
+  
+  for (i in 1:num_replications){
+    data <- make_data(n, effect_size)
+    p_values[i] <- data[ , t.test(clicked ~ treatment)]$p.value
+  }
+  p_values 
+}
+```
+
+Generating fake p_value distribution from data `d`. 
+
+```{r generate p-value distribution}
+p_value_dist <- get_pvalues(1000, hyp_effect_size, 1000)
+```
+
+Plotting the p_value distribution. 
+
+```{r plot results}
+ggplot() + 
+  aes(p_value_dist) + 
+  geom_histogram() + 
+  labs(
+    title="Distribution of p-values",
+    x = 'P-values from repeated t-tests'
+  )
+```
+Power of our test:
+
+```{r statistical power}
+t_test_rejects <- mean(p_value_dist < 0.05)
+t_test_rejects
+```
+
+Below we are simulating different treatment effects and different treatment sizes, and printing the power of our test for each plausible scenario. 
+
+```{r simulation with different treatment sizes and effects}
+sample_per_condition  <- c(100, 1000, 100000, 1000000) 
+hypothetical_ctrs <- c(industry_ctr * 0.1, industry_ctr * 0.3, industry_ctr * 0.4, 
+                       industry_ctr * 0.5, industry_ctr * 0.7, industry_ctr * 0.8, 
+                       industry_ctr * 0.9, industry_ctr, industry_ctr * 2)
+
+achieved_power <- NA
+
+for (ctr in hypothetical_ctrs){
+  for(i in 1:length(sample_per_condition)) { 
+    n <- sample_per_condition[i]
+    
+    p_values <- get_pvalues(n, ctr, 100)
+  
+    achieved_power[i] <- mean(p_values < 0.05)
+  
+    cat(
+        sprintf(
+          'For a treatment effect of %s, a sample size of %.2f, there is power of %.3f\n',
+          paste(ctr),
+          sample_per_condition[i], 
+          achieved_power[i]
+          )
+      )
+  }
+
+  print(ggplot() + 
+          aes(x = sample_per_condition, y = achieved_power) + 
+          geom_point() + 
+          geom_line() + 
+          labs(
+            title    = paste('Achieved Power for CTR =', ctr), 
+            x        = 'Sample Size', 
+            y        = 'Achieved Power'
+    ))
+    
+}
+
+```

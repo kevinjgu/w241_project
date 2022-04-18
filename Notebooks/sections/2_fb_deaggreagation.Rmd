@@ -1,0 +1,222 @@
+# Data Deaggregation
+
+In control, there are:
+- 96,576 women 
+- 104,896 men 
+- 1,696 unknown gender
+
+```{r generate control rows}
+control_age_groups <- c(rep(c('18-24'), times=49216), rep(c('25-34'), times=18816), rep(c('35-44'), times=10227), # Female age groups 
+                        rep(c('45-54'), times=5792), rep(c('55-64'), times=4672), rep(c('65+'), times=7099),
+                        rep(c('unknown'), times=754), # Don't know the age of 754 women
+                        
+                        rep(c('18-24'), times=45280), rep(c('25-34'), times=20928), rep(c('35-44'), times=13952), # Male age groups 
+                        rep(c('45-54'), times=9760), rep(c('55-64'), times=7488), rep(c('65+'), times=7488),
+                        
+                        rep(c('18-24'), times=864), rep(c('25-34'), times=253), rep(c('35-44'), times=128), # Unknown gender age groups
+                        rep(c('45-54'), times=64), rep(c('55-64'), times=128), rep(c('65+'), times=138),
+                        rep(c('unknown'), times=121)) # Don't know the age for 121 unknown gender individuals
+
+
+control_click_dist <- c(rep(c(1), times=77), rep(c(0), times=49139), # Female 18-24
+                        rep(c(1), times=20), rep(c(0), times=18796), # Female 25-34
+                        rep(c(1), times=8), rep(c(0), times=10219),  # Female 35-44
+                        rep(c(1), times=5), rep(c(0), times=5787),   # Female 45-54
+                        rep(c(1), times=4), rep(c(0), times=4668),   # Female 55-64 
+                        rep(c(1), times=18), rep(c(0), times=7081),  # Female 65+
+                        rep(c(0), times=754),
+                        
+                        rep(c(1), times=47), rep(c(0), times=45233),  # Male 18-24
+                        rep(c(1), times=23), rep(c(0), times=20905),  # Male 25-34
+                        rep(c(1), times=10), rep(c(0), times=13942),  # Male 35-44
+                        rep(c(1), times=12), rep(c(0), times=9748),   # Male 45-54
+                        rep(c(1), times=9), rep(c(0), times=7479),    # Male 55-64
+                        rep(c(1), times=13), rep(c(0), times=7475),   # Male 65+
+                        
+                        rep(c(1), times=3), rep(c(0), times=861),
+                        rep(c(0), times=253),
+                        rep(c(1), times=1), rep(c(0), times=127),
+                        rep(c(1), times=1), rep(c(0), times=63),
+                        rep(c(0), times=128), 
+                        rep(c(0), times=138), 
+                        rep(c(0), times=121))
+```
+
+In visual treatment, there are:
+- 171,968 women 
+- 172,736 men 
+- 2,082 unknown gender
+
+```{r generate visual treatment rows}
+visual_age_groups <- c(rep(c('18-24'), times=77696), rep(c('25-34'), times=38208), rep(c('35-44'), times=20224), # Female age groups 
+                        rep(c('45-54'), times=10987), rep(c('55-64'), times=8128), rep(c('65+'), times=16704),
+                        rep(c('unknown'), times=21), # Don't know the age of 21 women
+                       
+                        rep(c('18-24'), times=57728), rep(c('25-34'), times=37888), rep(c('35-44'), times=28031), # Male age groups 
+                        rep(c('45-54'), times=17152), rep(c('55-64'), times=12224), rep(c('65+'), times=18368),
+                        rep(c('unknown'), times=1345), # Don't know the age of 1345 men
+                       
+                        rep(c('18-24'), times=811), rep(c('25-34'), times=240), rep(c('35-44'), times=256), # Unknown gender age groups
+                        rep(c('45-54'), times=289), rep(c('55-64'), times=128), rep(c('65+'), times=209),
+                        rep(c('unknown'), times=149)) # Don't know the age for 149 unknown gender individuals
+
+
+visual_click_dist <-  c(rep(c(1), times=240), rep(c(0), times=77456), # Female 18-24
+                        rep(c(1), times=98), rep(c(0), times=38110), # Female 25-34
+                        rep(c(1), times=51), rep(c(0), times=20173),  # Female 35-44
+                        rep(c(1), times=15), rep(c(0), times=10972),   # Female 45-54
+                        rep(c(1), times=29), rep(c(0), times=8099),   # Female 55-64 
+                        rep(c(1), times=69), rep(c(0), times=16635),  # Female 65+
+                        rep(c(1), times=1),  rep(c(0), times=20),
+                        
+                        
+                        rep(c(1), times=161), rep(c(0), times=57567),  # Male 18-24
+                        rep(c(1), times=81), rep(c(0), times=37807),  # Male 25-34
+                        rep(c(1), times=56), rep(c(0), times=27975),  # Male 35-44
+                        rep(c(1), times=31), rep(c(0), times=17121),   # Male 45-54
+                        rep(c(1), times=17), rep(c(0), times=12207),    # Male 55-64
+                        rep(c(1), times=56), rep(c(0), times=18312),   # Male 65+
+                        rep(c(0), times=1345),
+                        
+                        rep(c(1), times=3), rep(c(0), times=808),
+                        rep(c(0), times=240),
+                        rep(c(0), times=256),
+                        rep(c(1), times=1), rep(c(0), times=288),
+                        rep(c(0), times=128), 
+                        rep(c(1), times=1), rep(c(0), times=208),
+                        rep(c(0), times=149))
+```
+
+In text treatment, there are:
+- 81,087 women 
+- 68,639 men 
+- 1,312 unknown gender
+
+```{r generate text treatment rows} 
+text_age_groups <-  c(rep(c('18-24'), times=43807), rep(c('25-34'), times=16736), rep(c('35-44'), times=7952), # Female age groups 
+                      rep(c('45-54'), times=4327), rep(c('55-64'), times=2912), rep(c('65+'), times=4928),
+                      rep(c('unknown'), times=425), # Don't know the age of 425 women
+                      rep(c('18-24'), times=30272), rep(c('25-34'), times=14112), rep(c('35-44'), times=9216), # Male age groups 
+                      rep(c('45-54'), times=6240), rep(c('55-64'), times=4160), rep(c('65+'), times=4640),
+                      rep(c('18-24'), times=608), rep(c('25-34'), times=96), rep(c('35-44'), times=128), # Unknown gender age groups
+                      rep(c('45-54'), times=159), rep(c('55-64'), times=64), rep(c('65+'), times=82),
+                      rep(c('unknown'), times=175)) # Don't know the age for 149 unknown gender individuals
+
+
+text_click_dist <-  c(rep(c(1), times=48), rep(c(0), times=43759), # Female 18-24
+                      rep(c(1), times=32), rep(c(0), times=16704), # Female 25-34
+                      rep(c(1), times=7), rep(c(0), times=7945),  # Female 35-44
+                      rep(c(1), times=2), rep(c(0), times=4325),   # Female 45-54
+                      rep(c(1), times=3), rep(c(0), times=2909),   # Female 55-64 
+                      rep(c(1), times=12), rep(c(0), times=4916),  # Female 65+
+                      rep(c(0), times=425),
+                      
+                      
+                      rep(c(1), times=34), rep(c(0), times=30238),  # Male 18-24
+                      rep(c(1), times=19), rep(c(0), times=14093),  # Male 25-34
+                      rep(c(1), times=17), rep(c(0), times=9199),  # Male 35-44
+                      rep(c(1), times=8), rep(c(0), times=6232),   # Male 45-54
+                      rep(c(1), times=6), rep(c(0), times=4154),    # Male 55-64
+                      rep(c(1), times=10), rep(c(0), times=4630),   # Male 65+
+                      
+                      rep(c(1), times=2), rep(c(0), times=1310))
+```
+
+In text + visual treatment, there are:
+- 188,608 women 
+- 152,960 men 
+- 1,600 unkown gender
+
+```{r generate text + visual treatment rows}
+text_visual_age_groups <- c(rep(c('18-24'), times=102912), rep(c('25-34'), times=40960), rep(c('35-44'), times=16192), # Female age groups 
+                            rep(c('45-54'), times=8903), rep(c('55-64'), times=6971), rep(c('65+'), times=11776),
+                            rep(c('unknown'), times=894), # Don't know the age of 894 women
+                            rep(c('18-24'), times=63552), rep(c('25-34'), times=32512), rep(c('35-44'), times=19904), # Male age groups 
+                            rep(c('45-54'), times=12685), rep(c('55-64'), times=8930), rep(c('65+'), times=13504),
+                            rep(c('unknown'), times=1873), # Don't know the age of 1873 men
+                            rep(c('18-24'), times=832), rep(c('25-34'), times=192), rep(c('35-44'), times=192), # Unknown gender age groups
+                            rep(c('45-54'), times=192), rep(c('55-64'), times=128), rep(c('65+'), times=64)) 
+
+
+text_visual_click_dist <-  c(rep(c(1), times=171), rep(c(0), times=102741), # Female 18-24
+                            rep(c(1), times=62), rep(c(0), times=40898),    # Female 25-34
+                            rep(c(1), times=29), rep(c(0), times=16163),    # Female 35-44
+                            rep(c(1), times=14), rep(c(0), times=8889),     # Female 45-54
+                            rep(c(1), times=5), rep(c(0), times=6966),      # Female 55-64 
+                            rep(c(1), times=46), rep(c(0), times=11730),    # Female 65+
+                            rep(c(0), times=894),
+                            
+                            
+                            rep(c(1), times=117), rep(c(0), times=63435),  # Male 18-24
+                            rep(c(1), times=63), rep(c(0), times=32449),   # Male 25-34
+                            rep(c(1), times=44), rep(c(0), times=19860),   # Male 35-44
+                            rep(c(1), times=14), rep(c(0), times=12671),   # Male 45-54
+                            rep(c(1), times=12), rep(c(0), times=8918),   # Male 55-64
+                            rep(c(1), times=37), rep(c(0), times=13467),   # Male 65+
+                            rep(c(0), times=1873),
+                            
+                            rep(c(0), times=832),
+                            rep(c(0), times=192),
+                            rep(c(0), times=192),
+                            rep(c(1), times=1), rep(c(0), times=191),
+                            rep(c(0), times=128), 
+                            rep(c(0), times=64))
+```
+
+# Create data table
+
+```{r create data table}
+d <- data.table(
+  # group:  The assigned treatment group for a given individual 
+  group      = c(rep(c('control'), times=203168), rep(c('visual treatment'), times=346786),
+             rep(c('text treatment'), times=151039), rep(c('text + visual treatment'), times=343168)),
+  
+  # gender: The individual's gender 
+  gender = c(rep(c('female'), times=96576), rep(c('male'), times=104896), rep(c('unknown'), times=1696),   # Control gender distribution
+             rep(c('female'), times=171968), rep(c('male'), times=172736), rep(c('unknown'), times=2082),  # Visual gender distribution 
+             rep(c('female'), times=81087), rep(c('male'), times=68640), rep(c('unknown'), times=1312),    # Text gender distribution 
+             rep(c('female'), times=188608), rep(c('male'), times=152960), rep(c('unknown'), times=1600)), # Visual + text gender distribution 
+  
+  # age:   Age groups based off "age" from facebook data
+  age   = c(control_age_groups, visual_age_groups, 
+            text_age_groups,    text_visual_age_groups),
+  
+  # clicked: 1 if individual clicked on the ad, 0 if not
+  #          Derived from the "Unique clicks (all)" variable 
+  #          from facebook ad data
+  clicked = c(control_click_dist, visual_click_dist, 
+              text_click_dist, text_visual_click_dist)
+)
+```
+
+# Sanity check
+
+```{r}
+d[, mean(clicked) * 100, by=.(group, gender, age)]
+```
+
+```{r}
+d[, mean(clicked), by=.(group, gender)]
+```
+
+```{r}
+d[, mean(clicked) * 100, by=.(group, gender)][gender=="female", ]
+```
+
+```{r number of clicks in each group}
+d[, .(num_clicks = sum(clicked)), by=group]
+```
+
+```{r number of clicks by group by gender}
+d[, .(num_clicks = sum(clicked)), by=.(group, gender)][gender %in% c('female'),]
+```
+
+```{r number of users in each group}
+d[, .(count=length(clicked)), by=.(group)]
+```
+
+# Export Data
+
+```{r export deaggregated dataset}
+#write.csv(d, file="fb_ad_data.csv")
+```

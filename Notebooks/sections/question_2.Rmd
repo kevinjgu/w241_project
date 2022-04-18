@@ -1,0 +1,7 @@
+# Think about Treatment Effects 
+
+Throughout this course we have focused on the average treatment effect. *Why* we are concerned about the average treatment effect. What is the relationship between an ATE, and some individuals' potential outcomes? Make the strongest case you can for why this is a *good* measure.
+
+We are concerned about the average treatment effect (ATE) because it is a reasonable summary value for a causal field experiment. The ATE is a good measure because, while there are many caveats and considerations to make in order to have an accurate result (attrition, spillover, clustering, etc), the results can be very informative and simplistically calculated when the causal field experiment is correctly set up. We are able to use the sharp null to see if the ATE actually makes a difference. The ATE can also be robust to variance and error using robust standard errors. If we have a narrow confidence interval, we are able to be more certain about the results.
+
+The $\tau_i$ treatment effect of each individual $i$ can be calculated with their observed treatment/control outcome through randomization inference. The relationship between an ATE and some individuals' potential outcomes manifests in getting the difference of the opposite outcome. It generates the sharp null so we can measure if the generated ATE is an actually useful/significant one.

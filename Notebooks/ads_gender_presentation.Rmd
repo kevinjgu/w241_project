@@ -1,0 +1,47 @@
+---
+title: "W241 Ad Experiment Analysis"
+author: "Carlos, Elda, Kevin, and Shirley"
+date: "04/2022"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r load packages, message = FALSE}
+library(data.table)
+
+library(sandwich)
+library(lmtest)
+
+library(AER) 
+
+library(ggplot2) 
+library(patchwork)
+
+library(stargazer)
+
+library(magrittr)
+library(tinytex)
+```
+
+```{r global options, include = FALSE}
+knitr::opts_chunk$set(include = FALSE, message = FALSE, warning = FALSE )
+
+knitr::knit_engines$set(problem_description = function(options) {
+  code <- paste(options$code, collapse = "\n")
+})
+
+```
+
+```{r POWER ANALYSIS, child='./sections/1_power_analysis.Rmd'}
+```
+\newpage
+```{r DATA DEAGGREGATION, child='./sections/2_fb_deaggregation.Rmd'}
+```
+\newpage
+```{r COVARIATE ANALYSIS, child='./sections/3_covariate_analysis.Rmd'}
+```
+\newpage
+```{r REGRESSION, child='./sections/4_regression.Rmd'}
+```
+\newpage
