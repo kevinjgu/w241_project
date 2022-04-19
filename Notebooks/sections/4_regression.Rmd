@@ -1,26 +1,23 @@
+# Create new treatment labels
+- `treated`: Received any treatment (1 or 0)
+- `visual` : Any visual treatment (visual treatment only OR text and visual treatment) (1 or 0)
+- `text` : Any textual treatment (textual treatment only OR text and visual treatment) (1 or 0)
 
-```{r}
+```{r create any treatment label}
 d[, treated := ifelse(test = group != "control", yes = 1, no = 0)]
 ```
 
-```{r}
+```{r create any visual treatment label}
 d[, visual := ifelse(test = group == "visual treatment" | group == "text + visual treatment", yes = 1, no = 0)]
 ```
 
-```{r}
+```{r create any text treatment label}
 d[, text := ifelse(test = group == "text treatment" | group == "text + visual treatment", yes = 1, no = 0)]
 ```
 
-```{r}
-head(d, 20)
-```
-
-```{r}
-unique(d$group)
-```
-
-# What effect does simply getting any treatment at all versus none have on the clickthru rate?
-```{r}
+# New treatment labels on click through rate
+## What effect does simply getting any treatment at all versus none have on the clickthru rate?
+```{r any treatment}
 model_treat_at_all <- lm(clicked ~ treated, data = d)
 model_treat_at_all
 coeftest(model_treat_at_all, vcov = vcovHC(model_treat_at_all, type = "HC0"))
@@ -28,68 +25,169 @@ stargazer(model_treat_at_all,
           se=robust_se(model_treat_at_all),
           type="text")
 ```
-# As we can see, if given any treatment, it corresponds to a 0.0008 (9.22e-05) increase in the clicked variable, which is an 0.0008 increase in the probability of them clicking, a small yet statistically significant difference. 
+As we can see, if given any treatment, it corresponds to a 0.0008 (9.22e-05) increase in the clicked variable, which is an 0.0008 increase in the probability of them clicking, a small yet statistically significant difference. 
 
-# Now let's see what the effect of a visual treatment is.
+## Now let's see what the effect of a visual treatment is.
 
-```{r}
-model_visual <- lm(visual ~ clicked, data = d)
+```{r recieving any visual treatment}
+model_visual <- lm(clicked ~ visual, data = d)
 model_visual
 coeftest(model_visual, vcov = vcovHC(model_visual, type = "HC0"))
+stargazer(model_visual,
+          se=robust_se(model_visual),
+          type="text")
 ```
-# Receiving a visual treatment corresponds to a 0.111 (0.009) increase in the probability of someone clicking the ad.
+Receiving a visual treatment corresponds to a 0.111 (0.009) increase in the probability of someone clicking the ad.
 
-# Now what about a text treatment?
-
-```{r}
-model_text <- lm(text ~ clicked, data = d)
+## Now what about a text treatment?
+```{r recieving any text treatment}
+model_text <- lm(clicked ~ text, data = d)
 model_text
 coeftest(model_text, vcov = vcovHC(model_text, type = "HC0"))
+stargazer(model_text,
+          se=robust_se(model_text),
+          type="text")
 ```
-# Receiving a text treatment corresponds to a 0.061 (0.011) decrease in the probability of someone clicking the ad.
+Receiving a text treatment corresponds to a 0.061 (0.011) decrease in the probability of someone clicking the ad.
 
-# Now, let's look at each individual treatment group in relation to the control
+# Individual treatment groups in relation to the control
 
-```{r}
+```{r text treatment only}
 model_just_text <- lm(clicked ~ treated, data = d[d$group == "control" | group == "text treatment"])
 model_just_text
 coeftest(model_just_text, vcov = vcovHC(model_just_text, type = "HC0"))
+stargazer(model_just_text,
+          se=robust_se(model_just_text),
+          type="text")
 ```
 
-```{r}
+```{r visual treatment only}
 model_just_visual <- lm(clicked ~ treated, data = d[d$group == "control" | group == "visual treatment"])
 model_just_visual
 coeftest(model_just_visual, vcov = vcovHC(model_just_visual, type = "HC0"))
+stargazer(model_just_visual,
+          se=robust_se(model_just_visual),
+          type="text")
 ```
 
-```{r}
+```{r recieving text and visual treatment only}
 model_text_visual <- lm(clicked ~ treated, data = d[d$group == "control" | group == "text + visual treatment"])
 model_text_visual
 coeftest(model_text_visual, vcov = vcovHC(model_text_visual, type = "HC0"))
+stargazer(model_text_visual,
+          se=robust_se(model_text_visual),
+          type="text")
 ```
+
+---
+
 # It seems as if the text treatments aren't having as big of an effect. Is adding the visual treatment on top of text more impactful than adding a text treatment on top of visual? 
 
-```{r}
+```{r visual on top of text}
 model_add_visual_to_text <- lm(clicked ~ visual, data = d[d$group == "text treatment" | group == "text + visual treatment"])
 model_add_visual_to_text
 coeftest(model_add_visual_to_text, vcov = vcovHC(model_add_visual_to_text, type = "HC0"))
+stargazer(model_add_visual_to_text,
+          se=robust_se(model_add_visual_to_text),
+          type="text")
 ```
 
-```{r}
+## Is adding the text treatment on top of visual more impactful than adding a visal treatment on top of text? 
+
+```{r text on top of visual}
 model_add_text_to_visual <- lm(clicked ~ text, data = d[d$group == "visual treatment" | group == "text + visual treatment"])
 model_add_text_to_visual
 coeftest(model_add_text_to_visual, vcov = vcovHC(model_add_text_to_visual, type = "HC0"))
+stargazer(model_add_text_to_visual,
+          se=robust_se(model_add_text_to_visual),
+          type="text")
 ```
 
 # Let's explore the effect of gender on the clickthru rate.
 
-```{r}
+```{r gender on clicks}
 model_gender <- lm(clicked ~ gender, data = d[d$gender != "unknown"])
 model_gender
 coeftest(model_gender, vcov = vcovHC(model_gender, type = "HC0"))
+stargazer(model_gender,
+          se=robust_se(model_gender),
+          type="text")
 ```
 
-```{r}
-unique(d$age)
+---
+
+```{r all of the any treatment models}
+stargazer(model_treat_at_all, 
+          model_visual, 
+          model_text, 
+          se= c(robust_se(model_treat_at_all), 
+                robust_se(model_visual), 
+                robust_se(model_text)
+                ),
+          type="text")
+```
+
+```{r individual treatment groups}
+stargazer(model_just_text, 
+          model_just_visual, 
+          model_text_visual,
+          se= c(robust_se(model_just_text), 
+                robust_se(model_just_visual), 
+                robust_se(model_text_visual)
+                ),
+          type="text")
+```
+
+```{r visual on top of text and vice versa}
+stargazer(model_add_visual_to_text, 
+          model_add_text_to_visual,
+          se= c(robust_se(model_add_visual_to_text),
+                robust_se(model_add_text_to_visual)
+                ),
+          type="text")
+```
+
+```{r interaction terms models}
+# Interact with removed unknown gender and unknown age
+interact_m <- d[(gender != "unknown" & age != "unknown"), 
+                 lm(clicked ~ textvisual + 
+                      text + 
+                      visual + 
+                      a25_34 + 
+                      a35_44 + 
+                      a45_54 + 
+                      a55_64 +
+                      a65plus +
+                      male +
+                      textvisual * male + 
+                      text * male +
+                      visual * male)]
+
+# Trying to replicate the stargazer table from the final presentation
+interact_all <- d[, 
+                 lm(clicked ~ textvisual + 
+                      text + 
+                      visual + 
+                      a25_34 + 
+                      a35_44 + 
+                      a45_54 + 
+                      a55_64 +
+                      a65plus +
+                      unknown_age +
+                      male +
+                      unknown_gender +
+                      textvisual * male + 
+                      text * male +
+                      visual * male +
+                      textvisual * unknown_gender +
+                      text * unknown_gender +
+                      visual * unknown_gender)]
+
+stargazer(interact_m, interact_all,
+          se = c(
+            list(robust_se(interact_m)),
+            list(robust_se(interact_all))
+            ),
+          type = 'text')
 ```
 

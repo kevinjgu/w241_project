@@ -214,6 +214,24 @@ d[, .(num_clicks = sum(clicked)), by=.(group, gender)][gender %in% c('female'),]
 ```{r number of users in each group}
 d[, .(count=length(clicked)), by=.(group)]
 ```
+```{r number of users in each group without unknowns}
+d[gender!='unknown' & age!='unknown', .(count=length(clicked)), by=.(group)]
+```
+```{r number of unknown users in each group}
+d[gender=='unknown' & age=='unknown', .(count=length(clicked)), by=.(group)]
+```
+
+```{r number of unknowns}
+d[gender=='unknown' & age=='unknown', .(count=length(clicked))]
+```
+
+```{r number of knowns}
+d[gender!='unknown' & age!='unknown', .(count=length(clicked))]
+```
+
+```{r number of clicks without unknowns}
+d[gender!='unknown' & age!='unknown', .(num_clicks = sum(clicked)), by=group]
+```
 
 # Export Data
 

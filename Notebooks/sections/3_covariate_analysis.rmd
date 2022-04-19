@@ -1,4 +1,4 @@
-# t-test of observations using one hot encoded data
+# t-test for randomization using one hot encoded data
 
 ```{r}
 robust_se <- function(model){
@@ -10,7 +10,7 @@ d <- fread(file="../data/fb_ad_data.csv")
 ```
 
 ```{r one-hot encode treatment groups}
-ad_codes <- c('control', 'visual_', 'text_', 'text_visual')
+ad_codes <- c('control', 'visual', 'text', 'textvisual')
 ad_groups <- c('control', 'visual treatment', 'text treatment', 'text + visual treatment')
 for (i in 1:length(ad_groups)) {
   d[, ad_codes[i] := ifelse(group == ad_groups[i], 1, 0)]
@@ -34,62 +34,38 @@ for (i in 1:length(ages)) {
 d[, "unknown_age" := ifelse(age == "unknown", 1, 0)]
 ```
 
-```{r t-test of total observations}
+```{r randomization check}
 #Estimate model
-m1 <- lm(control + text_ + visual_ ~ female + a18_24 + a25_34 + a35_44 + a45_54 + a55_64 + a65plus, data=d)
+m0 <- lm(textvisual + text + visual ~ female, 
+         data=d[gender!= "unknown" & age != "unknown",])
+
+m1 <- lm(textvisual + text + visual ~ female + a18_24 + a25_34 + a35_44 + a45_54 + a55_64, 
+         data=d[gender!= "unknown" & age != "unknown",])
+
 #Print results
-stargazer(m1, 
-          se = list(robust_se(m1)),
+stargazer(m0, m1, 
+          se = c(list(robust_se(m0)),
+                 list(robust_se(m1))),
           type = 'text')
 ```
 
-# Randomization check
-```{r}
-# Randomize a set of data, compute mean difference, record % exceeding observed mean
-#
-# filename is the name of the file containing the data - one column of data w/ header
-# n1 and n2 are the sample sizes for the two independent sets of data
-# iterations is the number of times to loop through the process -- I usually use 10000
-resample.u.between <- function(n1,n2,iterations) {
-  #Read in data and initialize variables
-  names(score)[1] <- 'var1'
-  nsample <- length(score$var1)
-  startn2 <- n1+1
-  target <- abs(mean(score$var1[1:n1]) - mean(score$var1[startn2:nsample]))
-  y <- 1
-  ucomp <- vector()
-  uarray <- vector()
-  #Loop starts here
-  while (y <= iterations) {
-    #Randomize the sample
-    perm <- sample(score$var1,replace=F)
-    #cat(perm,"\n")
-    #Get the two samples and compute the absolute difference in means
-    mean.first <- mean(perm[1:n1])
-    mean.second <- mean(perm[startn2:nsample])
-    mean.diff <- abs(mean.first - mean.second)
-    #Compare mean.diff to target and store in ucomp array
-    if (mean.diff >= target) {
-    ucomp [y] <- 1
-    } else {
-    ucomp [y] <- 0 }
-  y <- y+1 
-  }
-  #Loop ends above here
-  #Compute mean of ucomp which is proportion of u >= target
-  uexceed <- mean(ucomp)
-  #cat(uarray,"\n")
-  #cat(ucomp,"\n")
-  cat("Observed mean difference: ",target,"\n")
-  cat("Proportion exceeding observed mean difference: ",uexceed)
-}
-resample.u.between('sampletimes.txt',11,9,10000)
+```{r t-test of total observations}
+#Estimate model
+simple_m <- d[(gender != "unknown" & age != "unknown"), 
+              lm(clicked ~ text + visual + textvisual)]
 
-#For testing:
-filename <- 'NPS_GTM_WebEx.txt'
-n1 <- 36
-n2 <- 31
-iterations <- 10000
+gender_m <- d[(gender != "unknown" & age != "unknown"), 
+                 lm(clicked ~ text + visual + textvisual + female)]
+
+saturated_m <- d[(gender != "unknown" & age != "unknown"), 
+                 lm(clicked ~ text + visual + textvisual + female + 
+                      a18_24 + a25_34 + a35_44 + a45_54 + a55_64)]
+#Print results
+stargazer(simple_m, gender_m, saturated_m,
+          se = c(list(robust_se(simple_m)), 
+                 list(robust_se(gender_m)),
+                 list(robust_se(saturated_m))),
+          type = 'text')
 ```
 
 # Covariate Balance Check
