@@ -1,22 +1,12 @@
-# Create new treatment labels
+# Model exploration
+
+## New treatment labels on click through rate
+
 - `treated`: Received any treatment (1 or 0)
 - `visual` : Any visual treatment (visual treatment only OR text and visual treatment) (1 or 0)
 - `text` : Any textual treatment (textual treatment only OR text and visual treatment) (1 or 0)
 
-```{r create any treatment label}
-d[, treated := ifelse(test = group != "control", yes = 1, no = 0)]
-```
-
-```{r create any visual treatment label}
-d[, visual := ifelse(test = group == "visual treatment" | group == "text + visual treatment", yes = 1, no = 0)]
-```
-
-```{r create any text treatment label}
-d[, text := ifelse(test = group == "text treatment" | group == "text + visual treatment", yes = 1, no = 0)]
-```
-
-# New treatment labels on click through rate
-## What effect does simply getting any treatment at all versus none have on the clickthru rate?
+### What effect does simply getting any treatment at all versus none have on the clickthru rate?
 ```{r any treatment}
 model_treat_at_all <- lm(clicked ~ treated, data = d)
 model_treat_at_all
@@ -27,7 +17,7 @@ stargazer(model_treat_at_all,
 ```
 As we can see, if given any treatment, it corresponds to a 0.0008 (9.22e-05) increase in the clicked variable, which is an 0.0008 increase in the probability of them clicking, a small yet statistically significant difference. 
 
-## Now let's see what the effect of a visual treatment is.
+### Now let's see what the effect of a visual treatment is.
 
 ```{r recieving any visual treatment}
 model_visual <- lm(clicked ~ visual, data = d)
@@ -39,7 +29,7 @@ stargazer(model_visual,
 ```
 Receiving a visual treatment corresponds to a 0.111 (0.009) increase in the probability of someone clicking the ad.
 
-## Now what about a text treatment?
+### Now what about a text treatment?
 ```{r recieving any text treatment}
 model_text <- lm(clicked ~ text, data = d)
 model_text
@@ -50,7 +40,7 @@ stargazer(model_text,
 ```
 Receiving a text treatment corresponds to a 0.061 (0.011) decrease in the probability of someone clicking the ad.
 
-# Individual treatment groups in relation to the control
+## Individual treatment groups in relation to the control
 
 ```{r text treatment only}
 model_just_text <- lm(clicked ~ treated, data = d[d$group == "control" | group == "text treatment"])
@@ -81,7 +71,10 @@ stargazer(model_text_visual,
 
 ---
 
-# It seems as if the text treatments aren't having as big of an effect. Is adding the visual treatment on top of text more impactful than adding a text treatment on top of visual? 
+## Visual on top of text OR text on top of visual?
+
+### Visual on top of text
+It seems as if the text treatments aren't having as big of an effect. Is adding the visual treatment on top of text more impactful than adding a text treatment on top of visual? 
 
 ```{r visual on top of text}
 model_add_visual_to_text <- lm(clicked ~ visual, data = d[d$group == "text treatment" | group == "text + visual treatment"])
@@ -92,7 +85,8 @@ stargazer(model_add_visual_to_text,
           type="text")
 ```
 
-## Is adding the text treatment on top of visual more impactful than adding a visal treatment on top of text? 
+### Text on top of visual 
+Is adding the text treatment on top of visual more impactful than adding a visal treatment on top of text? 
 
 ```{r text on top of visual}
 model_add_text_to_visual <- lm(clicked ~ text, data = d[d$group == "visual treatment" | group == "text + visual treatment"])
@@ -103,7 +97,8 @@ stargazer(model_add_text_to_visual,
           type="text")
 ```
 
-# Let's explore the effect of gender on the clickthru rate.
+## Effects of gender on click through rate
+Let's explore the effect of gender on the clickthru rate.
 
 ```{r gender on clicks}
 model_gender <- lm(clicked ~ gender, data = d[d$gender != "unknown"])
@@ -116,6 +111,10 @@ stargazer(model_gender,
 
 ---
 
+# Model Exploration Stargazer Tables
+Comparing models from Model Exploration section using Stargazer
+
+## New treatment labels
 ```{r all of the any treatment models}
 stargazer(model_treat_at_all, 
           model_visual, 
@@ -126,7 +125,7 @@ stargazer(model_treat_at_all,
                 ),
           type="text")
 ```
-
+## Individual treatment groups
 ```{r individual treatment groups}
 stargazer(model_just_text, 
           model_just_visual, 
@@ -137,7 +136,7 @@ stargazer(model_just_text,
                 ),
           type="text")
 ```
-
+## Visual on top of text OR Text on top of visual
 ```{r visual on top of text and vice versa}
 stargazer(model_add_visual_to_text, 
           model_add_text_to_visual,
@@ -147,116 +146,43 @@ stargazer(model_add_visual_to_text,
           type="text")
 ```
 
-```{r interaction terms models}
-# Interact with removed unknown gender and unknown age
-interact_m <- d[(gender != "unknown" & age != "unknown"), 
-                 lm(clicked ~ textvisual + 
-                      text + 
-                      visual + 
-                      I(a25_34) + 
-                      I(a35_44) + 
-                      I(a45_54) + 
-                      I(a55_64) +
-                      I(a65plus) +
-                      I(male) +
-                      I(textvisual * male) + 
-                      I(text * male) +
-                      I(visual * male))]
+---
 
-# Trying to replicate the stargazer table from the final presentation
-interact_all <- d[, 
-                 lm(clicked ~ textvisual + 
-                      text + 
-                      visual + 
-                      I(a25_34) + 
-                      I(a35_44) + 
-                      I(a45_54) + 
-                      I(a55_64) +
-                      I(a65plus) +
-                      I(unknown_age) +
-                      I(male) +
-                      I(unknown_gender) +
-                      I(textvisual * male) + 
-                      I(text * male) +
-                      I(visual * male) +
-                      I(textvisual * unknown_gender) +
-                      I(text * unknown_gender) +
-                      I(visual * unknown_gender))]
-
-stargazer(interact_m, interact_all,
-          se = c(
-            list(robust_se(interact_m)),
-            list(robust_se(interact_all))
-            ),
-          type = 'text')
+# Model used in the final presentation (updated below)
+```{r simple and saturated+interaction models using I()}
+# Kevin's code, adapted
+simp <- lm(clicked ~ I(group), data=d)
+full <- lm(clicked ~ I(group) + I(age) + I(gender) + (I(group) * I(gender)), data=d)
+stargazer(simp, full,
+          se=c(list(robust_se(simp)),
+               list(robust_se(full))), 
+          type = "text")
 ```
+
+---
+
+# Final Model with interaction terms
 
 ```{r interaction terms models with different variables}
 # Interact with removed unknown gender and unknown age
-basic_m <- d[, lm(clicked ~ textvisual + 
-                  text + 
-                  visual)]
+basic_model <- d[(gender != "unknown" & age != "unknown"), 
+                 lm(clicked ~ text_visual + text + visual)]
 
-interact_m <- d[, 
-                 lm(clicked ~ textvisual + 
-                      text + 
-                      visual + 
-                      I(a25_34) + 
-                      I(a35_44) + 
-                      I(a45_54) + 
-                      I(a55_64) +
-                      I(a65plus) +
+full_intr_m <- d[(gender != "unknown" & age != "unknown"), 
+                 lm(clicked ~ text_visual + text + visual +
                       I(female) +
-                      I(textvisual * female) + 
+                      I(age18_24) +
+                      I(age25_34) + 
+                      I(age35_44) + 
+                      I(age45_54) + 
+                      I(age55_64) +
+                      I(text_visual * female) + 
                       I(text * female) +
                       I(visual * female))]
 
-interact_all <- d[, 
-                 lm(clicked ~ textvisual + 
-                      text + 
-                      visual + 
-                      I(a25_34) + 
-                      I(a35_44) + 
-                      I(a45_54) + 
-                      I(a55_64) +
-                      I(a65plus) +
-                      I(unknown_age) +
-                      I(female) +
-                      I(unknown_gender) +
-                      I(textvisual * female) + 
-                      I(text * female) +
-                      I(visual * female) +
-                      I(textvisual * unknown_gender) +
-                      I(text * unknown_gender) +
-                      I(visual * unknown_gender))]
-
-stargazer(basic_m, interact_m, interact_all,
+stargazer(basic_model, full_intr_m,
           se = c(
-            list(robust_se(basic_m)),
-            list(robust_se(interact_m)),
-            list(robust_se(interact_all))
-            ),
+            list(robust_se(basic_model)),
+            list(robust_se(full_intr_m))),
           type = 'text')
-```
-
-```{r grouped and interaction terms}
-#Kevin's code
-m_no_interact <- lm(clicked ~ factor(group) + factor(age) + factor(gender), data = d)
-m_with_intrct <- lm(clicked ~ I(group) + I(age) + I(gender) + (I(group) * I(gender)), data = d)
-stargazer(m_no_interact,
-          m_with_intrct,
-          se=c(list(robust_se(m_no_interact)),
-               list(robust_se(m_with_intrct))),
-          type = "text")
-```
-
-
-```{r I() code only}
-# Kevin's code, adapted
-full <- lm(clicked ~ I(group) + I(age) + I(gender) + (I(group) * I(gender)), data=d)
-tret <- lm(clicked ~ I(group), data=d)
-stargazer(tret, full,
-          se=c(list(robust_se(tret)),
-               list(robust_se(full))), 
-          type = "text")
 ```

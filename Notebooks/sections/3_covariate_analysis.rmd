@@ -1,5 +1,3 @@
-# t-test for randomization using one hot encoded data
-
 ```{r}
 robust_se <- function(model){
   # get robust standard error
@@ -7,108 +5,6 @@ robust_se <- function(model){
 }
 
 d <- fread(file="../data/fb_ad_data.csv")
-```
-
-```{r one-hot encode treatment groups}
-ad_codes <- c('control', 'visual', 'text', 'textvisual')
-ad_groups <- c('control', 'visual treatment', 'text treatment', 'text + visual treatment')
-for (i in 1:length(ad_groups)) {
-  d[, ad_codes[i] := ifelse(group == ad_groups[i], 1, 0)]
-}
-```
-
-```{r one-hot encode genders}
-genders <- c('female', 'male')
-for (i in 1:length(genders)) {
-  d[, genders[i] := ifelse(gender == genders[i], 1, 0)]
-}
-d[, "unknown_gender" := ifelse(gender == "unknown", 1, 0)]
-```
-
-```{r one-hot encode ages}
-age_codes <- c('a18_24', 'a25_34', 'a35_44', 'a45_54', 'a55_64', 'a65plus')
-ages <- c('18-24', '25-34', '35-44', '45-54', '55-64', '65+')
-for (i in 1:length(ages)) {
-  d[, age_codes[i] := ifelse(age == ages[i], 1, 0)]
-}
-d[, "unknown_age" := ifelse(age == "unknown", 1, 0)]
-```
-
-```{r randomization check}
-#Estimate model
-m0 <- lm(textvisual + text + visual ~ female, 
-         data=d[gender!= "unknown" & age != "unknown",])
-
-m1 <- lm(textvisual + text + visual ~ female + a18_24 + a25_34 + a35_44 + a45_54 + a55_64, 
-         data=d[gender!= "unknown" & age != "unknown",])
-
-#Print results
-stargazer(m0, m1, 
-          se = c(list(robust_se(m0)),
-                 list(robust_se(m1))),
-          type = 'text')
-```
-
-```{r t-test of variables for randomness}
-#Estimate model
-m_simple_treat <- lm(treated ~ female + male, 
-         data=d)
-
-m_saturate_trt <- lm(treated ~ female + male + a18_24 + a25_34 + a35_44 + a45_54 + a55_64 + a65plus, 
-         data=d)
-
-#Print results
-stargazer(m_simple_treat, m_saturate_trt, 
-          se = c(list(robust_se(m_simple_treat)),
-                 list(robust_se(m_saturate_trt))),
-          type = 'text')
-```
-
-```{r f-test of variables for randomness}
-anova(lm(treated ~ female + male + a18_24 + a25_34 + a35_44 + a45_54 + a55_64 + a65plus, 
-         data=d),
-      test = "F")
-```
-
-```{r t-test of variables for randomness with FACTORS}
-#Estimate model
-m_simple_treat <- lm(treated ~ factor(gender), 
-         data=d)
-
-m_saturate_trt <- lm(treated ~ factor(gender) + factor(age), 
-         data=d)
-
-#Print results
-stargazer(m_simple_treat, m_saturate_trt, 
-          se = c(list(robust_se(m_simple_treat)),
-                 list(robust_se(m_saturate_trt))),
-          type = 'text')
-```
-
-```{r f-test of variables for randomness WITH FACTOR}
-anova(lm(treated ~ factor(gender) + factor(age), 
-         data=d),
-      test = "F")
-```
-
-
-```{r t-test of total observations}
-#Estimate model
-simple_m <- d[(gender != "unknown" & age != "unknown"), 
-              lm(clicked ~ text + visual + textvisual)]
-
-gender_m <- d[(gender != "unknown" & age != "unknown"), 
-                 lm(clicked ~ text + visual + textvisual + female)]
-
-saturated_m <- d[(gender != "unknown" & age != "unknown"), 
-                 lm(clicked ~ text + visual + textvisual + female + 
-                      a18_24 + a25_34 + a35_44 + a45_54 + a55_64)]
-#Print results
-stargazer(simple_m, gender_m, saturated_m,
-          se = c(list(robust_se(simple_m)), 
-                 list(robust_se(gender_m)),
-                 list(robust_se(saturated_m))),
-          type = 'text')
 ```
 
 # Covariate Balance Check
@@ -147,6 +43,34 @@ head(cov_balance_checks)
 
 ```
 
+## Visualization/EDA
+
+``` {r}
+s <- d[age!='unknown', .(count=length(clicked)), by=.(age,group)]
+ggplot(data= s, aes(x=age, y=count, fill=group)) + 
+  geom_bar(stat='identity') +
+  labs(x='Age Group', y='Count', fill='Ad type') +
+  labs(title = "Age distribution, divided by ad assignment type")
+```
+
+``` {r}
+t <- d[age!='unknown', .(count=length(clicked)), by=.(age, gender)]
+ggplot(data= t, aes(x=age, y=count, fill=gender)) + 
+  geom_bar(stat='identity') +
+  labs(x='Age Group', y='Count', fill='Gender') +
+  labs(title = "Age distribution, divided by gender") +
+  scale_fill_manual(values = c("#DADAEB", "#9E9AC8", "#6A51A3"))
+```
+
+```{r}
+u <- d[, .(count=length(clicked)), by=.(group, gender)]
+ggplot(data= u, aes(x=group, y=count, fill=gender)) + 
+  geom_bar(stat='identity') +
+  labs(x='Treatment group', y='Count', fill="Gender") +
+  labs(title = "Ad treatment distribution, divided by gender") +
+  scale_fill_manual(values = c("#DADAEB", "#9E9AC8", "#6A51A3"))
+```
+
 # Covariate Balance Check Against Pilot Study
 Mean clicks should look similar across groups for pilot study and full study. Covariates should also look similar.
 
@@ -165,29 +89,116 @@ pilot_balance_checks$share_female <- pilot[Gender == 'female', sum(clicked), by=
 pilot_balance_checks
 ```
 
-# Visualization
-
-``` {r}
-s <- d[age!='unknown', .(count=length(clicked)), by=.(age,group)]
-ggplot(data= s, aes(x=age, y=count, fill=group)) + 
-  geom_bar(stat='identity') +
-  labs(x='Age Group', y='Count', fill='Ad type') +
-  labs(title = "Age distribution, divided by ad assignment type")
+# In-Depth Covariate Balance Check using t-test and f-test for randomization
+## One hot encoded data
+```{r one-hot encode treatment groups}
+ad_codes <- c('control', 'visual', 'text', 'text_visual')
+ad_groups <- c('control', 'visual treatment', 'text treatment', 'text + visual treatment')
+for (i in 1:length(ad_groups)) {
+  d[, ad_codes[i] := ifelse(group == ad_groups[i], 1, 0)]
+}
 ```
 
-``` {r}
-t <- d[age!='unknown', .(count=length(clicked)), by=.(age, gender)]
-ggplot(data= t, aes(x=age, y=count, fill=gender)) + 
-  geom_bar(stat='identity') +
-  labs(x='Age Group', y='Count', fill='Gender') +
-  labs(title = "Age distribution, divided by gender") +
-  scale_fill_manual(values = c("#DADAEB", "#9E9AC8", "#6A51A3"))
+```{r one-hot encode genders}
+genders <- c('female', 'male')
+for (i in 1:length(genders)) {
+  d[, genders[i] := ifelse(gender == genders[i], 1, 0)]
+}
+d[, "unknown_gender" := ifelse(gender == "unknown", 1, 0)]
 ```
-```{r}
-u <- d[, .(count=length(clicked)), by=.(group, gender)]
-ggplot(data= u, aes(x=group, y=count, fill=gender)) + 
-  geom_bar(stat='identity') +
-  labs(x='Treatment group', y='Count', fill="Gender") +
-  labs(title = "Ad treatment distribution, divided by gender") +
-  scale_fill_manual(values = c("#DADAEB", "#9E9AC8", "#6A51A3"))
+
+```{r one-hot encode ages}
+age_codes <- c('age18_24', 'age25_34', 'age35_44', 'age45_54', 'age55_64', 'age65plus')
+ages <- c('18-24', '25-34', '35-44', '45-54', '55-64', '65+')
+for (i in 1:length(ages)) {
+  d[, age_codes[i] := ifelse(age == ages[i], 1, 0)]
+}
+d[, "unknown_age" := ifelse(age == "unknown", 1, 0)]
+```
+
+## Create new treatment labels
+- `treated`: Received any treatment (1 or 0)
+- `visual` : Any visual treatment (visual treatment only OR text and visual treatment) (1 or 0)
+- `text` : Any textual treatment (textual treatment only OR text and visual treatment) (1 or 0)
+
+```{r create any treatment label}
+d[, treated := ifelse(test = group != "control", yes = 1, no = 0)]
+```
+
+```{r create any visual treatment label}
+d[, visual := ifelse(test = group == "visual treatment" | group == "text + visual treatment", yes = 1, no = 0)]
+```
+
+```{r create any text treatment label}
+d[, text := ifelse(test = group == "text treatment" | group == "text + visual treatment", yes = 1, no = 0)]
+```
+
+---
+
+## Randomziation check 
+
+This code uses female, male, unknown gender (omitted/used as constant) and age groups 18-24, 25-34, 35-44, 45-54, 55-64, 65+, and unknown age (omitted/used as constant) to check for covariate randomization.
+```{r t-test of variables for randomness}
+#Estimate model
+m_genderonly_t <- lm(treated ~ female + male,
+                     data=d)
+
+m_saturate_trt <- lm(treated ~ female + male + 
+                       age18_24 + age25_34 + age35_44 + age45_54 + age55_64 + age65plus,
+                     data=d)
+
+#Print results with stargazer
+stargazer(m_genderonly_t, m_saturate_trt, 
+          se = c(list(robust_se(m_genderonly_t)),
+                 list(robust_se(m_saturate_trt))),
+          type = 'text')
+
+#Run f-test with same model
+anova(lm(treated ~ female + male + age18_24 + age25_34 + age35_44 + age45_54 + age55_64 + age65plus, 
+         data=d),
+      test = "F")
+```
+
+This code uses female (omitted/used as constant), male, unknown gender and age groups 18-24 (omitted/used as constant), 25-34, 35-44, 45-54, 55-64, 65+, and unknown age to check for covariate randomization. It differs from the previous code because of how the lm model choose which covariate to treat as a constant. We choose to see the male and female covariate to see our variables of interest better. While in regression, using the unknown gender and age as constants wouldn't make sense, since this is a randomization test, both modes work.
+```{r t-test of variables for randomness with FACTORS}
+#Estimate model
+m_simple_treat <- lm(treated ~ factor(gender), 
+         data=d)
+
+m_saturate_trt <- lm(treated ~ factor(gender) + factor(age), 
+         data=d)
+
+#Print results
+stargazer(m_simple_treat, m_saturate_trt, 
+          se = c(list(robust_se(m_simple_treat)),
+                 list(robust_se(m_saturate_trt))),
+          type = 'text')
+
+#Run f-test with same model
+anova(lm(treated ~ factor(gender) + factor(age), 
+         data=d),
+      test = "F")
+```
+
+---
+
+# Simple model, gender model, saturated model
+Without interaction terms and removing unknown age and gender labels
+```{r simple, gender, and saturated model}
+#Estimate model
+simple_m <- d[(gender != "unknown" & age != "unknown"), 
+              lm(clicked ~ text + visual + text_visual)]
+
+gender_m <- d[(gender != "unknown" & age != "unknown"), 
+                 lm(clicked ~ text + visual + text_visual + female)]
+
+saturated_m <- d[(gender != "unknown" & age != "unknown"), 
+                 lm(clicked ~ text + visual + text_visual + female + 
+                      age18_24 + age25_34 + age35_44 + age45_54 + age55_64)]
+#Print results
+stargazer(simple_m, gender_m, saturated_m,
+          se = c(list(robust_se(simple_m)), 
+                 list(robust_se(gender_m)),
+                 list(robust_se(saturated_m))),
+          type = 'text')
 ```

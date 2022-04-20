@@ -163,7 +163,7 @@ text_visual_click_dist <-  c(rep(c(1), times=171), rep(c(0), times=102741), # Fe
                             rep(c(0), times=64))
 ```
 
-# Create data table
+## Create data table
 
 ```{r create data table}
 d <- data.table(
@@ -189,8 +189,8 @@ d <- data.table(
 )
 ```
 
-# Sanity check
-
+# Data Deaggregation Sanity Check
+Grouping the data to make sure that it matches with the given aggregated Facebook data
 ```{r}
 d[, mean(clicked) * 100, by=.(group, gender, age)]
 ```
@@ -234,7 +234,6 @@ d[gender!='unknown' & age!='unknown', .(num_clicks = sum(clicked)), by=group]
 ```
 
 # Export Data
-
 ```{r export deaggregated dataset}
 #write.csv(d, file="fb_ad_data.csv")
 ```
