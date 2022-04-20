@@ -49,6 +49,49 @@ stargazer(m0, m1,
           type = 'text')
 ```
 
+```{r t-test of variables for randomness}
+#Estimate model
+m_simple_treat <- lm(treated ~ female + male, 
+         data=d)
+
+m_saturate_trt <- lm(treated ~ female + male + a18_24 + a25_34 + a35_44 + a45_54 + a55_64 + a65plus, 
+         data=d)
+
+#Print results
+stargazer(m_simple_treat, m_saturate_trt, 
+          se = c(list(robust_se(m_simple_treat)),
+                 list(robust_se(m_saturate_trt))),
+          type = 'text')
+```
+
+```{r f-test of variables for randomness}
+anova(lm(treated ~ female + male + a18_24 + a25_34 + a35_44 + a45_54 + a55_64 + a65plus, 
+         data=d),
+      test = "F")
+```
+
+```{r t-test of variables for randomness with FACTORS}
+#Estimate model
+m_simple_treat <- lm(treated ~ factor(gender), 
+         data=d)
+
+m_saturate_trt <- lm(treated ~ factor(gender) + factor(age), 
+         data=d)
+
+#Print results
+stargazer(m_simple_treat, m_saturate_trt, 
+          se = c(list(robust_se(m_simple_treat)),
+                 list(robust_se(m_saturate_trt))),
+          type = 'text')
+```
+
+```{r f-test of variables for randomness WITH FACTOR}
+anova(lm(treated ~ factor(gender) + factor(age), 
+         data=d),
+      test = "F")
+```
+
+
 ```{r t-test of total observations}
 #Estimate model
 simple_m <- d[(gender != "unknown" & age != "unknown"), 
@@ -120,4 +163,31 @@ pilot_balance_checks <- pilot[, 100*sum(clicked)/sum(Reach), by=.(group)]
 pilot_balance_checks$share_female <- pilot[Gender == 'female', sum(clicked), by=.(group)]$V1/pilot[, sum(clicked), by=.(group)]$V1
 
 pilot_balance_checks
+```
+
+# Visualization
+
+``` {r}
+s <- d[age!='unknown', .(count=length(clicked)), by=.(age,group)]
+ggplot(data= s, aes(x=age, y=count, fill=group)) + 
+  geom_bar(stat='identity') +
+  labs(x='Age Group', y='Count', fill='Ad type') +
+  labs(title = "Age distribution, divided by ad assignment type")
+```
+
+``` {r}
+t <- d[age!='unknown', .(count=length(clicked)), by=.(age, gender)]
+ggplot(data= t, aes(x=age, y=count, fill=gender)) + 
+  geom_bar(stat='identity') +
+  labs(x='Age Group', y='Count', fill='Gender') +
+  labs(title = "Age distribution, divided by gender") +
+  scale_fill_manual(values = c("#DADAEB", "#9E9AC8", "#6A51A3"))
+```
+```{r}
+u <- d[, .(count=length(clicked)), by=.(group, gender)]
+ggplot(data= u, aes(x=group, y=count, fill=gender)) + 
+  geom_bar(stat='identity') +
+  labs(x='Treatment group', y='Count', fill="Gender") +
+  labs(title = "Ad treatment distribution, divided by gender") +
+  scale_fill_manual(values = c("#DADAEB", "#9E9AC8", "#6A51A3"))
 ```

@@ -153,35 +153,35 @@ interact_m <- d[(gender != "unknown" & age != "unknown"),
                  lm(clicked ~ textvisual + 
                       text + 
                       visual + 
-                      a25_34 + 
-                      a35_44 + 
-                      a45_54 + 
-                      a55_64 +
-                      a65plus +
-                      male +
-                      textvisual * male + 
-                      text * male +
-                      visual * male)]
+                      I(a25_34) + 
+                      I(a35_44) + 
+                      I(a45_54) + 
+                      I(a55_64) +
+                      I(a65plus) +
+                      I(male) +
+                      I(textvisual * male) + 
+                      I(text * male) +
+                      I(visual * male))]
 
 # Trying to replicate the stargazer table from the final presentation
 interact_all <- d[, 
                  lm(clicked ~ textvisual + 
                       text + 
                       visual + 
-                      a25_34 + 
-                      a35_44 + 
-                      a45_54 + 
-                      a55_64 +
-                      a65plus +
-                      unknown_age +
-                      male +
-                      unknown_gender +
-                      textvisual * male + 
-                      text * male +
-                      visual * male +
-                      textvisual * unknown_gender +
-                      text * unknown_gender +
-                      visual * unknown_gender)]
+                      I(a25_34) + 
+                      I(a35_44) + 
+                      I(a45_54) + 
+                      I(a55_64) +
+                      I(a65plus) +
+                      I(unknown_age) +
+                      I(male) +
+                      I(unknown_gender) +
+                      I(textvisual * male) + 
+                      I(text * male) +
+                      I(visual * male) +
+                      I(textvisual * unknown_gender) +
+                      I(text * unknown_gender) +
+                      I(visual * unknown_gender))]
 
 stargazer(interact_m, interact_all,
           se = c(
@@ -191,3 +191,72 @@ stargazer(interact_m, interact_all,
           type = 'text')
 ```
 
+```{r interaction terms models with different variables}
+# Interact with removed unknown gender and unknown age
+basic_m <- d[, lm(clicked ~ textvisual + 
+                  text + 
+                  visual)]
+
+interact_m <- d[, 
+                 lm(clicked ~ textvisual + 
+                      text + 
+                      visual + 
+                      I(a25_34) + 
+                      I(a35_44) + 
+                      I(a45_54) + 
+                      I(a55_64) +
+                      I(a65plus) +
+                      I(female) +
+                      I(textvisual * female) + 
+                      I(text * female) +
+                      I(visual * female))]
+
+interact_all <- d[, 
+                 lm(clicked ~ textvisual + 
+                      text + 
+                      visual + 
+                      I(a25_34) + 
+                      I(a35_44) + 
+                      I(a45_54) + 
+                      I(a55_64) +
+                      I(a65plus) +
+                      I(unknown_age) +
+                      I(female) +
+                      I(unknown_gender) +
+                      I(textvisual * female) + 
+                      I(text * female) +
+                      I(visual * female) +
+                      I(textvisual * unknown_gender) +
+                      I(text * unknown_gender) +
+                      I(visual * unknown_gender))]
+
+stargazer(basic_m, interact_m, interact_all,
+          se = c(
+            list(robust_se(basic_m)),
+            list(robust_se(interact_m)),
+            list(robust_se(interact_all))
+            ),
+          type = 'text')
+```
+
+```{r grouped and interaction terms}
+#Kevin's code
+m_no_interact <- lm(clicked ~ factor(group) + factor(age) + factor(gender), data = d)
+m_with_intrct <- lm(clicked ~ I(group) + I(age) + I(gender) + (I(group) * I(gender)), data = d)
+stargazer(m_no_interact,
+          m_with_intrct,
+          se=c(list(robust_se(m_no_interact)),
+               list(robust_se(m_with_intrct))),
+          type = "text")
+```
+
+
+```{r I() code only}
+# Kevin's code, adapted
+full <- lm(clicked ~ I(group) + I(age) + I(gender) + (I(group) * I(gender)), data=d)
+tret <- lm(clicked ~ I(group), data=d)
+stargazer(tret, full,
+          se=c(list(robust_se(tret)),
+               list(robust_se(full))), 
+          type = "text")
+```
